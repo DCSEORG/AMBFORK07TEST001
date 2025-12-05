@@ -17,9 +17,6 @@ param adminLogin string
 @allowed(['User', 'Application'])
 param adminPrincipalType string = 'User'
 
-@description('Managed Identity Principal ID for database access')
-param managedIdentityPrincipalId string
-
 // SQL Server
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   name: 'sql-${baseName}-${uniqueSuffix}'

@@ -19,7 +19,7 @@ param adminPrincipalType string = 'User'
 
 // Generate unique suffix for resource naming
 var uniqueSuffix = uniqueString(resourceGroup().id)
-var timestamp = '${substring(uniqueSuffix, 0, 6)}'
+var timestamp = substring(uniqueSuffix, 0, 6)
 
 // Deploy Managed Identity first (needed by other resources)
 module managedIdentity 'modules/managed-identity.bicep' = {
@@ -31,15 +31,13 @@ module managedIdentity 'modules/managed-identity.bicep' = {
   }
 }
 
-// Deploy Monitoring resources
+// Deploy Log Analytics and App Insights (no dependencies)
 module monitoring 'modules/monitoring.bicep' = {
   name: 'monitoring-deployment'
   params: {
     location: location
     baseName: baseName
     uniqueSuffix: uniqueSuffix
-    appServiceId: appService.outputs.webAppId
-    sqlDatabaseId: resourceId('Microsoft.Sql/servers/databases', azureSQL.outputs.sqlServerName, azureSQL.outputs.sqlDatabaseName)
   }
 }
 
@@ -65,7 +63,6 @@ module azureSQL 'modules/azure-sql.bicep' = {
     adminObjectId: adminObjectId
     adminLogin: adminLogin
     adminPrincipalType: adminPrincipalType
-    managedIdentityPrincipalId: managedIdentity.outputs.managedIdentityPrincipalId
   }
 }
 
