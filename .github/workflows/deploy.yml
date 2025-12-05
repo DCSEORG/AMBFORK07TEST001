@@ -1,0 +1,86 @@
+name: Deploy to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployGenAI:
+        description: 'Deploy GenAI resources (Azure OpenAI and AI Search)'
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Install sqlcmd
+        run: |
+          curl -sSL -o sqlcmd.tar.bz2 https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.0/sqlcmd-linux-amd64.tar.bz2
+          sudo tar -xjf sqlcmd.tar.bz2 -C /usr/local/bin
+          sqlcmd --version
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Deploy Infrastructure
+        shell: pwsh
+        run: |
+          $deployGenAI = "${{ inputs.deployGenAI }}" -eq "true"
+          $params = @{
+            ResourceGroup = "rg-expensemgmt-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+            Location = "uksouth"
+            BaseName = "expensemgmt"
+          }
+          
+          if ($deployGenAI) {
+            $params.DeployGenAI = $true
+          }
+          
+          ./deploy-infra/deploy.ps1 @params
+      
+      - name: Wait for App Service to stabilize
+        run: |
+          echo "Waiting 60 seconds for App Service settings to apply..."
+          sleep 60
+      
+      - name: Deploy Application
+        shell: pwsh
+        run: |
+          ./deploy-app/deploy.ps1
+      
+      - name: Output URLs
+        shell: pwsh
+        run: |
+          $context = Get-Content .deployment-context.json | ConvertFrom-Json
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "Deployment Complete!" -ForegroundColor Green
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "Application URL:" -ForegroundColor Yellow
+          Write-Host "https://$($context.webAppHostName)/Index" -ForegroundColor White
+          Write-Host ""
+          Write-Host "Swagger API Documentation:" -ForegroundColor Yellow
+          Write-Host "https://$($context.webAppHostName)/swagger" -ForegroundColor White
+          Write-Host ""

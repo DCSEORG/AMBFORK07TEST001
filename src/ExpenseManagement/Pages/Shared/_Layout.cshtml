@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Expense Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #50C878;
+            --danger-color: #E74C3C;
+            --warning-color: #F39C12;
+            --bg-light: #F8F9FA;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #357ABD 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #357ABD;
+            border-color: #357ABD;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .alert-banner {
+            border-radius: 0;
+            border: none;
+            margin-bottom: 0;
+            padding: 1rem;
+        }
+        
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .status-pending {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background-color: #D4EDDA;
+            color: #155724;
+        }
+        
+        .status-rejected {
+            background-color: #F8D7DA;
+            color: #721C24;
+        }
+        
+        .main-content {
+            padding: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/Index">
+                <i class="bi bi-receipt-cutoff me-2"></i>
+                Expense Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Index">
+                            <i class="bi bi-house-door me-1"></i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/swagger">
+                            <i class="bi bi-code-square me-1"></i>
+                            API Docs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Chat">
+                            <i class="bi bi-chat-dots me-1"></i>
+                            AI Chat
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    @if (ViewData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-warning alert-banner">
+            <div class="container">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                    <div>
+                        <strong>Database Connection Issue</strong>
+                        <p class="mb-1">@ViewData["ErrorMessage"]</p>
+                        @if (ViewData["ErrorDetails"] != null)
+                        {
+                            <small class="text-muted">@ViewData["ErrorDetails"]</small>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="main-content">
+        <div class="container">
+            @RenderBody()
+        </div>
+    </div>
+
+    <footer class="bg-white border-top mt-5 py-4">
+        <div class="container text-center text-muted">
+            <p class="mb-0">
+                &copy; @DateTime.Now.Year Expense Management System | 
+                <a href="/swagger" class="text-decoration-none">API Documentation</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
