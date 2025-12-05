@@ -1,0 +1,847 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "15859780686408366944"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for the resources"
+      }
+    },
+    "baseName": {
+      "type": "string",
+      "defaultValue": "expensemgmt",
+      "metadata": {
+        "description": "Base name for all resources"
+      }
+    },
+    "deployGenAI": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Deploy GenAI resources (Azure OpenAI and AI Search)"
+      }
+    },
+    "adminObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD administrator Object ID"
+      }
+    },
+    "adminLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AD administrator login name"
+      }
+    },
+    "adminPrincipalType": {
+      "type": "string",
+      "defaultValue": "User",
+      "allowedValues": [
+        "User",
+        "Application"
+      ],
+      "metadata": {
+        "description": "Azure AD administrator principal type"
+      }
+    }
+  },
+  "variables": {
+    "uniqueSuffix": "[uniqueString(resourceGroup().id)]",
+    "timestamp": "[substring(variables('uniqueSuffix'), 0, 6)]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "managedIdentity-deployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "timestamp": {
+            "value": "[variables('timestamp')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "16022305706924090432"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the resources"
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name for the managed identity"
+              }
+            },
+            "timestamp": {
+              "type": "string",
+              "metadata": {
+                "description": "Timestamp for uniqueness"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('mid-{0}-{1}', parameters('baseName'), parameters('timestamp'))]",
+              "location": "[parameters('location')]"
+            }
+          ],
+          "outputs": {
+            "managedIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the managed identity"
+              },
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mid-{0}-{1}', parameters('baseName'), parameters('timestamp')))]"
+            },
+            "managedIdentityClientId": {
+              "type": "string",
+              "metadata": {
+                "description": "The client ID of the managed identity"
+              },
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mid-{0}-{1}', parameters('baseName'), parameters('timestamp'))), '2023-01-31').clientId]"
+            },
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the managed identity"
+              },
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mid-{0}-{1}', parameters('baseName'), parameters('timestamp'))), '2023-01-31').principalId]"
+            },
+            "managedIdentityName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the managed identity"
+              },
+              "value": "[format('mid-{0}-{1}', parameters('baseName'), parameters('timestamp'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "monitoring-deployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "uniqueSuffix": {
+            "value": "[variables('uniqueSuffix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "1045037636927506979"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the resources"
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name for monitoring resources"
+              }
+            },
+            "uniqueSuffix": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique suffix for resource naming"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[format('log-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('appi-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appInsightsConnectionString": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights connection string"
+              },
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))), '2020-02-02').ConnectionString]"
+            },
+            "appInsightsInstrumentationKey": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights instrumentation key"
+              },
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))), '2020-02-02').InstrumentationKey]"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace ID"
+              },
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appService-deployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "uniqueSuffix": {
+            "value": "[variables('uniqueSuffix')]"
+          },
+          "managedIdentityId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment'), '2025-04-01').outputs.managedIdentityId.value]"
+          },
+          "appInsightsConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring-deployment'), '2025-04-01').outputs.appInsightsConnectionString.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "10331541494208956622"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the resources"
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name for the app service"
+              }
+            },
+            "uniqueSuffix": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique suffix for resource naming"
+              }
+            },
+            "managedIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the user-assigned managed identity"
+              }
+            },
+            "appInsightsConnectionString": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Application Insights connection string"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2022-09-01",
+              "name": "[format('asp-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "S1",
+                "tier": "Standard",
+                "capacity": 1
+              },
+              "kind": "linux",
+              "properties": {
+                "reserved": true
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2022-09-01",
+              "name": "[format('app-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('managedIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('asp-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "linuxFxVersion": "DOTNETCORE|8.0",
+                  "alwaysOn": true,
+                  "minTlsVersion": "1.2",
+                  "ftpsState": "Disabled",
+                  "appSettings": [
+                    {
+                      "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                      "value": "[parameters('appInsightsConnectionString')]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', format('asp-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "webAppId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the App Service"
+              },
+              "value": "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+            },
+            "webAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the App Service"
+              },
+              "value": "[format('app-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]"
+            },
+            "webAppHostName": {
+              "type": "string",
+              "metadata": {
+                "description": "The default hostname of the App Service"
+              },
+              "value": "[reference(resourceId('Microsoft.Web/sites', format('app-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))), '2022-09-01').defaultHostName]"
+            },
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the managed identity assigned to App Service"
+              },
+              "value": "[parameters('managedIdentityId')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment')]",
+        "[resourceId('Microsoft.Resources/deployments', 'monitoring-deployment')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "azureSQL-deployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "uniqueSuffix": {
+            "value": "[variables('uniqueSuffix')]"
+          },
+          "adminObjectId": {
+            "value": "[parameters('adminObjectId')]"
+          },
+          "adminLogin": {
+            "value": "[parameters('adminLogin')]"
+          },
+          "adminPrincipalType": {
+            "value": "[parameters('adminPrincipalType')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "6558401721061971256"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the resources"
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name for SQL resources"
+              }
+            },
+            "uniqueSuffix": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique suffix for resource naming"
+              }
+            },
+            "adminObjectId": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AD administrator Object ID"
+              }
+            },
+            "adminLogin": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AD administrator login name (UPN or display name)"
+              }
+            },
+            "adminPrincipalType": {
+              "type": "string",
+              "defaultValue": "User",
+              "allowedValues": [
+                "User",
+                "Application"
+              ],
+              "metadata": {
+                "description": "Azure AD administrator principal type"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Sql/servers",
+              "apiVersion": "2022-05-01-preview",
+              "name": "[format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "minimalTlsVersion": "1.2",
+                "publicNetworkAccess": "Enabled",
+                "administrators": {
+                  "administratorType": "ActiveDirectory",
+                  "principalType": "[parameters('adminPrincipalType')]",
+                  "login": "[parameters('adminLogin')]",
+                  "sid": "[parameters('adminObjectId')]",
+                  "tenantId": "[subscription().tenantId]",
+                  "azureADOnlyAuthentication": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2022-05-01-preview",
+              "name": "[format('{0}/{1}', format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')), 'AllowAzureServices')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers/databases",
+              "apiVersion": "2022-05-01-preview",
+              "name": "[format('{0}/{1}', format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')), 'Northwind')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Basic",
+                "tier": "Basic"
+              },
+              "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sqlServerFqdn": {
+              "type": "string",
+              "metadata": {
+                "description": "The fully qualified domain name of the SQL Server"
+              },
+              "value": "[reference(resourceId('Microsoft.Sql/servers', format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))), '2022-05-01-preview').fullyQualifiedDomainName]"
+            },
+            "sqlServerName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the SQL Server"
+              },
+              "value": "[format('sql-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))]"
+            },
+            "sqlDatabaseName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the SQL Database"
+              },
+              "value": "Northwind"
+            }
+          }
+        }
+      }
+    },
+    {
+      "condition": "[parameters('deployGenAI')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "genAI-deployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "uniqueSuffix": {
+            "value": "[variables('uniqueSuffix')]"
+          },
+          "managedIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment'), '2025-04-01').outputs.managedIdentityPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "6509298082245245508"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the resources"
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name for GenAI resources"
+              }
+            },
+            "uniqueSuffix": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique suffix for resource naming"
+              }
+            },
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the managed identity to grant access"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2023-05-01",
+              "name": "[toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]",
+              "location": "swedencentral",
+              "kind": "OpenAI",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "customSubDomainName": "[toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))), 'gpt-4o')]",
+              "sku": {
+                "name": "Standard",
+                "capacity": 8
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "gpt-4o",
+                  "version": "2024-08-06"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2023-11-01",
+              "name": "[toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "basic"
+              },
+              "properties": {
+                "replicaCount": 1,
+                "partitionCount": 1,
+                "hostingMode": "default"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))), parameters('managedIdentityPrincipalId'), 'Cognitive Services OpenAI User')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
+                "principalId": "[parameters('managedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))), parameters('managedIdentityPrincipalId'), 'Search Index Data Reader')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')]",
+                "principalId": "[parameters('managedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "openAIEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "The endpoint of the Azure OpenAI service"
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))), '2023-05-01').endpoint]"
+            },
+            "openAIModelName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the deployed model"
+              },
+              "value": "gpt-4o"
+            },
+            "openAIName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Azure OpenAI resource"
+              },
+              "value": "[toLower(format('oai-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+            },
+            "searchEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "The endpoint of the Azure AI Search service"
+              },
+              "value": "[format('https://{0}.search.windows.net', toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix'))))]"
+            },
+            "searchName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Azure AI Search resource"
+              },
+              "value": "[toLower(format('srch-{0}-{1}', parameters('baseName'), parameters('uniqueSuffix')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "webAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appService-deployment'), '2025-04-01').outputs.webAppName.value]"
+    },
+    "webAppHostName": {
+      "type": "string",
+      "metadata": {
+        "description": "The default hostname of the App Service"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appService-deployment'), '2025-04-01').outputs.webAppHostName.value]"
+    },
+    "sqlServerFqdn": {
+      "type": "string",
+      "metadata": {
+        "description": "The fully qualified domain name of the SQL Server"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'azureSQL-deployment'), '2025-04-01').outputs.sqlServerFqdn.value]"
+    },
+    "sqlServerName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the SQL Server"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'azureSQL-deployment'), '2025-04-01').outputs.sqlServerName.value]"
+    },
+    "sqlDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the SQL Database"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'azureSQL-deployment'), '2025-04-01').outputs.sqlDatabaseName.value]"
+    },
+    "managedIdentityClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "The client ID of the managed identity"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment'), '2025-04-01').outputs.managedIdentityClientId.value]"
+    },
+    "managedIdentityName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the managed identity"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'managedIdentity-deployment'), '2025-04-01').outputs.managedIdentityName.value]"
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "metadata": {
+        "description": "Application Insights connection string"
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring-deployment'), '2025-04-01').outputs.appInsightsConnectionString.value]"
+    },
+    "openAIEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "The endpoint of the Azure OpenAI service (empty if not deployed)"
+      },
+      "value": "[if(parameters('deployGenAI'), reference(resourceId('Microsoft.Resources/deployments', 'genAI-deployment'), '2025-04-01').outputs.openAIEndpoint.value, '')]"
+    },
+    "openAIModelName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the deployed OpenAI model (empty if not deployed)"
+      },
+      "value": "[if(parameters('deployGenAI'), reference(resourceId('Microsoft.Resources/deployments', 'genAI-deployment'), '2025-04-01').outputs.openAIModelName.value, '')]"
+    },
+    "openAIName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Azure OpenAI resource (empty if not deployed)"
+      },
+      "value": "[if(parameters('deployGenAI'), reference(resourceId('Microsoft.Resources/deployments', 'genAI-deployment'), '2025-04-01').outputs.openAIName.value, '')]"
+    },
+    "searchEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "The endpoint of the Azure AI Search service (empty if not deployed)"
+      },
+      "value": "[if(parameters('deployGenAI'), reference(resourceId('Microsoft.Resources/deployments', 'genAI-deployment'), '2025-04-01').outputs.searchEndpoint.value, '')]"
+    },
+    "searchName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Azure AI Search resource (empty if not deployed)"
+      },
+      "value": "[if(parameters('deployGenAI'), reference(resourceId('Microsoft.Resources/deployments', 'genAI-deployment'), '2025-04-01').outputs.searchName.value, '')]"
+    }
+  }
+}
